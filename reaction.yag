@@ -1,0 +1,62 @@
+{{/*
+		PokeNav Grant Badge with Badge emoji reaction
+		Checks if reaction emoji starts with "bg" and issues grant badge command
+		Trigger: reaction
+		Required Roles: Pokenav Badge Moderator role
+		Limit to channel where messages that you want to add reactions to in order to grant badges
+
+		This script assumes that you name all of your boss badges staring with "bg"
+		If you use different letters/word at the beginning of the emoji name,
+		go to line 40 and change ^bg to ^whatever
+		the ^ means "starts with" which is the easiest type of search to do
+
+*/}}
+
+{{/* Set Channel IDs Here */}}
+{{/* ID of channel where grant badge command should be sent by YAGPDB */}}
+
+  {{ $commandChannelID := 639594333867212816}}
+
+{{/* ID of channel where reactions are added
+    so that YAGPDB can delete checkEmoji when badge revoked */}}
+
+    {{ $channelID := 347028159239290880}}
+
+{{/* Checkmark emoji and YAG userID */}}
+		{{ $checkEmoji := ":gbCheck:896481862388711484"}}
+		{{ $YAGid := 204255221017214977 }}
+
+{{/* ------------ DO NOT ALTER CODE BELOW ------------ */}}
+
+{{/* Set Up Variables */}}
+	{{ $reactionEmoji := .Reaction.Emoji.MessageFormat }}
+	{{ $reactionName := .Reaction.Emoji.Name }}
+	{{ $messageAuthor := .ReactionMessage.Author.ID }}
+	{{ $emojiCount := 0 }}
+	{{ $messageID := .Reaction.MessageID }}
+
+{{range .ReactionMessage.Reactions}}
+		{{/* If emote name begins with 'bg' */}}
+			{{if reFind "^bg" $reactionName}}
+				{{/* Update count with the count of the emote */}}
+				{{$emojiCount = .Count}}
+			{{end}}
+{{end}}
+
+{{/* Form PokeNav Badge Command Strings */}}
+	{{ $commandGrantBadge := print "!gb " $reactionEmoji " " $messageAuthor }}
+	{{ $commandRevokeBadge := print "!rb " $reactionEmoji " " $messageAuthor }}
+
+{{if reFind "^bg" $reactionName }} {{/* check that badge name starts with "bg" */}}
+	{{if .ReactionAdded }}
+			{{if eq $emojiCount 1}}
+				{{sendMessage $commandChannelID $commandGrantBadge }} {{/* sends gb command */}}
+				{{addReactions $checkEmoji}} {{/* adds check emoji to message */}}
+			{{end}}
+	{{else}}
+			{{if eq $emojiCount 0}}
+				{{sendMessage $commandChannelID $commandRevokeBadge }} {{/* sends rb command */}}
+				{{deleteMessageReaction $channelID $messageID $YAGid $checkEmoji}}
+			{{end}}
+	{{end}}
+{{end}}
